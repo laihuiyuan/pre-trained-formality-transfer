@@ -50,7 +50,7 @@ def main():
             src_seq.append(line.strip())
 
     start = time.time()
-    with open('./data/outputs/{}_{}_{}.{}'.format(
+    with open('./data/outputs/{}_{}_{}.{}.txt'.format(
             opt.model, opt.dataset, opt.order, opt.style), 'w') as fout:
         for idx, line in enumerate(src_seq):
             if idx % 100 == 0:

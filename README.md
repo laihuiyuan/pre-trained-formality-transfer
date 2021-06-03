@@ -23,7 +23,7 @@ python textcnn.py -dataset em
 ### Step 2: Fine-tuning BART
 ```
 cd classifier
-sh pg_traing.sh em 0.0 sc bl formal informal
+sh pg.sh em 0.0 sc bl formal informal
 ```
 **Note:** in the paper, we employ the style classifier that uses GPT2 tokenizer to evaluate style strength.
 
