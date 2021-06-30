@@ -44,10 +44,10 @@ def main():
     torch.manual_seed(opt.seed)
 
     test_src, test_tgt = [], []
-    with open('./data/outputs/bart_{}_{}.1'.format(opt.dataset, opt.order),'r') as f:
+    with open('./data/outputs/bart_{}_{}.1.txt'.format(opt.dataset, opt.order),'r') as f:
         for line in f.readlines():
             test_src.append(tokenizer.encode(line.strip())[:opt.max_len])
-    with open('./data/outputs/bart_{}_{}.0'.format(opt.dataset, opt.order),'r') as f:
+    with open('./data/outputs/bart_{}_{}.0.txt'.format(opt.dataset, opt.order),'r') as f:
        for line in f.readlines():
            test_tgt.append(tokenizer.encode(line.strip())[:opt.max_len])
     print('[Info] {} instances from src test set'.format(len(test_src)))
