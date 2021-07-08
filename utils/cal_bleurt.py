@@ -13,7 +13,7 @@ def cal_bleurt(file0, file1):
         hyps = []
         for line in fin.readlines():
             hyps.append(line.strip())
-    for i in range(int(sys.argv[5])):
+    for i in range(4):
         with open(file1+str(i),'r') as fin:
             refs = []
             for line in fin.readlines():
