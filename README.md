@@ -33,9 +33,7 @@ If you use this code, please cite our paper:
 ```
 @inproceedings{lai-etal-2021-thank,
     title = "Thank you {BART}! Rewarding Pre-Trained Models Improves Formality Style Transfer",
-    author = "Lai, Huiyuan  and
-      Toral, Antonio  and
-      Nissim, Malvina",
+    author = "Lai, Huiyuan and Toral, Antonio and Nissim, Malvina",
     booktitle = "Proceedings of the 59th Annual Meeting of the Association for Computational Linguistics and the 11th International Joint Conference on Natural Language Processing (Volume 2: Short Papers)",
     month = aug,
     year = "2021",

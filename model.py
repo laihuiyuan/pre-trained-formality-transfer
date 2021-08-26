@@ -708,28 +708,6 @@ class SelfAttention(nn.Module):
         return new_key_padding_mask
 
 
-class BartClassificationHead(nn.Module):
-    """Head for sentence-level classification tasks."""
-
-    # This can trivially be shared with RobertaClassificationHead
-
-    def __init__(
-        self, input_dim, inner_dim, num_classes, pooler_dropout,
-    ):
-        super().__init__()
-        self.dense = nn.Linear(input_dim, inner_dim)
-        self.dropout = nn.Dropout(p=pooler_dropout)
-        self.out_proj = nn.Linear(inner_dim, num_classes)
-
-    def forward(self, x):
-        x = self.dropout(x)
-        x = self.dense(x)
-        x = torch.tanh(x)
-        x = self.dropout(x)
-        x = self.out_proj(x)
-        return x
-
-
 class LearnedPositionalEmbedding(nn.Embedding):
     """
     This module learns positional embeddings up to a fixed maximum size.
@@ -957,51 +935,6 @@ class BartForMaskedLM(PretrainedBartModel):
             "attention_mask": attention_mask,
             # "decoder_attention_mask": decoder_attention_mask,
         }
-
-    def decode(
-            self,
-            input_ids,
-            mask=None,
-            max_len=30,
-            differentiable=False,
-            temperature=1.0,
-    ):
-        logits = []
-        decoder_cache = None
-        bos_token_id = self.config.bos_token_id
-        pad_token_id = self.config.pad_token_id
-        eos_token_id = self.config.eos_token_id
-        batch_size, cur_len = input_ids.shape[:2]
-        if not differentiable:
-            prev_output_tokens = input_ids.new(batch_size, 1).long().fill_(bos_token_id)
-        else:
-            prev_output_tokens = input_ids.new(batch_size, 1, self.config.vocab_size).float().fill_(0)
-            # prev_output_tokens[:,0, style_id] = 1
-            prev_output_tokens[:, 0, bos_token_id] = 1
-
-        self.model.decoder.output_past = True
-        self.model.decoder.generation_mode = True  # tells decoder not to use causal mask
-        for step in range(max_len + 1):
-            decoder_input_ids = prev_output_tokens.clone()
-            model_inputs = self.prepare_inputs_for_generation(
-                input_ids, decoder_cache, decoder_input_ids, mask
-            )
-            outputs = self(**model_inputs)
-            probs = F.softmax(outputs[0] / temperature, dim=-1)
-
-            if not differentiable:
-                prev_output_tokens = torch.cat([prev_output_tokens, probs.argmax(dim=-1)], dim=1)
-            else:
-                prev_output_tokens = torch.cat([prev_output_tokens, probs], dim=1)
-
-            decoder_cache = outputs[1]
-            logits.append(probs)
-
-        logits = torch.cat(logits, 1)
-        self.model.decoder.output_past = False
-        self.model.decoder.generation_mode = False
-
-        return logits
 
     @staticmethod
     def _reorder_cache(past, beam_idx):
@@ -1296,84 +1229,3 @@ class BartForMaskedLM(PretrainedBartModel):
         banned_tokens = [_get_generated_ngrams(hypo_idx) for hypo_idx in range(num_hypos)]
         return banned_tokens
 
-
-@add_start_docstrings(
-    """Bart model with a sequence classification/head on top (a linear layer on top of the pooled output) e.g. for GLUE tasks. """,
-    BART_START_DOCSTRING,
-)
-class BartForSequenceClassification(PretrainedBartModel):
-    def __init__(self, config: BartConfig, **kwargs):
-        super().__init__(config, **kwargs)
-        self.model = BartModel(config)
-        self.classification_head = BartClassificationHead(
-            config.d_model, config.d_model, config.num_labels, config.classif_dropout,
-        )
-        self.model._init_weights(self.classification_head.dense)
-        self.model._init_weights(self.classification_head.out_proj)
-
-    @add_start_docstrings_to_callable(BART_INPUTS_DOCSTRING)
-    def forward(
-        self,
-        input_ids,
-        attention_mask=None,
-        encoder_outputs=None,
-        decoder_input_ids=None,
-        decoder_attention_mask=None,
-        labels=None,
-    ):
-        r"""
-        labels (:obj:`torch.LongTensor` of shape :obj:`(batch_size,)`, `optional`, defaults to :obj:`None`):
-            Labels for computing the sequence classification/regression loss.
-            Indices should be in :obj:`[0, ..., config.num_labels - 1]`.
-            If :obj:`config.num_labels > 1` a classification loss is computed (Cross-Entropy).
-
-    Returns:
-        :obj:`tuple(torch.FloatTensor)` comprising various elements depending on the configuration (:class:`~transformers.BartConfig`) and inputs:
-            loss (:obj:`torch.FloatTensor` of shape :obj:`(1,)`, `optional`, returned when :obj:`label` is provided):
-                Classification  loss (cross entropy)
-            logits (:obj:`torch.FloatTensor` of shape :obj:`(batch_size, config.num_labels)`):
-                Classification (or regression if config.num_labels==1) scores (before SoftMax).
-            hidden_states (:obj:`tuple(torch.FloatTensor)`, `optional`, returned when ``config.output_hidden_states=True``):
-                Tuple of :obj:`torch.FloatTensor` (one for the output of the embeddings + one for the output of each layer)
-                of shape :obj:`(batch_size, sequence_length, hidden_size)`.
-                Hidden-states of the model at the output of each layer plus the initial embedding outputs.
-            attentions (:obj:`tuple(torch.FloatTensor)`, `optional`, returned when ``config.output_attentions=True``):
-                Tuple of :obj:`torch.FloatTensor` (one for each layer) of shape :obj:`(batch_size, num_heads, sequence_length, sequence_length)`.
-                Attentions weights after the attention softmax, used to compute the weighted average in the
-                self-attention
-                heads.
-
-    Examples::
-
-        from transformers import BartTokenizer, BartForSequenceClassification
-        import torch
-
-        tokenizer = BartTokenizer.from_pretrained('bart-large')
-        model = BartForSequenceClassification.from_pretrained('bart-large')
-        input_ids = torch.tensor(tokenizer.encode("Hello, my dog is cute",
-        add_special_tokens=True)).unsqueeze(0)  # Batch size 1
-        labels = torch.tensor([1]).unsqueeze(0)  # Batch size 1
-        outputs = model(input_ids, labels=labels)
-        loss, logits = outputs[:2]
-
-        """
-        outputs = self.model(
-            input_ids,
-            attention_mask=attention_mask,
-            decoder_input_ids=decoder_input_ids,
-            decoder_attention_mask=decoder_attention_mask,
-            encoder_outputs=encoder_outputs,
-        )
-        x = outputs[0]  # last hidden state
-        eos_mask = input_ids.eq(self.config.eos_token_id)
-        if len(torch.unique(eos_mask.sum(1))) > 1:
-            raise ValueError("All examples must have the same number of <eos> tokens.")
-        sentence_representation = x[eos_mask, :].view(x.size(0), -1, x.size(-1))[:, -1, :]
-        logits = self.classification_head(sentence_representation)
-        # Prepend logits
-        outputs = (logits,) + outputs[1:]  # Add hidden states and attention if they are here
-        if labels is not None:  # prepend loss to output,
-            loss = F.cross_entropy(logits.view(-1, self.config.num_labels), labels.view(-1))
-            outputs = (loss,) + outputs
-
-        return outputs
