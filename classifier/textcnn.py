@@ -85,7 +85,6 @@ def main():
     parser.add_argument('-dataset', default='em', type=str, help='the name of dataset')
     parser.add_argument('-embed_dim', default=300, type=int, help='the embedding size')
     parser.add_argument('-seed', default=42, type=int, help='pseudo random number seed')
-    parser.add_argument('-min_count', default=0, type=int, help='minmum number of corpus')
     parser.add_argument("-dropout", default=0.5, type=float, help="Keep prob in dropout.")
     parser.add_argument('-max_len', default=50, type=int, help='maximum tokens in a batch')
     parser.add_argument('-log_step', default=100, type=int, help='print log every x steps')
@@ -144,7 +143,7 @@ def main():
     avg_acc = 0
     total_acc = 0.
     total_num = 0.
-    total_loss = 0.
+    loss_list = []
     start = time.time()
     for e in range(opt.epoch):
 
@@ -154,7 +153,7 @@ def main():
             optimizer.zero_grad()
             logits = model(x_batch)
             loss = loss_fn(logits, y_batch)
-            total_loss += loss
+            loss_list.append(loss.item())
             loss.backward()
             optimizer.step()
 
@@ -168,7 +167,7 @@ def main():
                 print('[Info] Epoch {:02d}-{:05d}: | average acc {:.4f}% | '
                     'average loss {:.4f} | lr {:.6f} | second {:.2f}'.format(
                     e, optimizer.steps, total_acc / total_num * 100,
-                    total_loss / (total_num), lr, time.time() - start))
+                    np.mean(loss_list, lr, time.time() - start))
                 start = time.time()
 
             if optimizer.steps % opt.eval_step == 0:

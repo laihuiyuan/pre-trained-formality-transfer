@@ -1,5 +1,5 @@
 
-# [Thank you BART! Rewarding Pre-Trained Models Improves Formality Style Transfer (ACL-IJCNLP 2021)](https://arxiv.org/abs/2105.06947)
+# [Thank you BART! Rewarding Pre-Trained Models Improves Formality Style Transfer (ACL2021)](https://arxiv.org/abs/2105.06947)
 
 ## Dependencies
 ```
