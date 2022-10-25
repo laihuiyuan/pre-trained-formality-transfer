@@ -44,10 +44,10 @@ def main():
     torch.manual_seed(opt.seed)
 
     test_src, test_tgt = [], []
-    with open('./data/outputs/bart_{}_{}.1.txt'.format(opt.dataset, opt.order),'r') as f:
+    with open('./outputs/bart_{}.1.txt'.format(opt.dataset),'r') as f:
         for line in f.readlines():
             test_src.append(tokenizer.encode(line.strip())[:opt.max_len])
-    with open('./data/outputs/bart_{}_{}.0.txt'.format(opt.dataset, opt.order),'r') as f:
+    with open('./outputs/bart_{}.0.txt'.format(opt.dataset),'r') as f:
        for line in f.readlines():
            test_tgt.append(tokenizer.encode(line.strip())[:opt.max_len])
     print('[Info] {} instances from src test set'.format(len(test_src)))
@@ -68,7 +68,6 @@ def main():
         for i,batch in enumerate(test_loader):
             x_batch, y_batch = map(lambda x: x.to(device), batch)
             logits = model(x_batch)
-            print(F.softmax(logits, dim=-1))
             total_loss += loss_fn(logits, y_batch)
             _, y_hat = torch.max(logits,dim=-1)
             same = [float(p == q) for p, q in zip(y_batch, y_hat)]
